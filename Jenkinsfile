@@ -21,7 +21,9 @@ pipeline {
                 sh '''
                     rm -rf node_modules package-lock.json
                     npm install --legacy-peer-deps
-                    npm audit fix --force || echo "Audit fix may have failed; continuing"
+                    npm audit fix || echo "Audit fix skipped errors"
+                    # Reinstall react-scripts in case audit fix removed it
+                    npm install react-scripts@5.0.1 --save-dev
                 '''
             }
         }
@@ -34,11 +36,12 @@ pipeline {
             }
         }
 
-        stage('Serve Application (Production Mode)') {
+        stage('Serve Application') {
             steps {
                 sh '''
-                    nohup npx serve -s build -l ${PORT} > serve.log 2>&1 &
-                    echo "React app started on http://$(curl -s ifconfig.me):${PORT}"
+                    nohup npx serve -s build -l $PORT > serve.log 2>&1 &
+                    sleep 5
+                    echo "✅ App is running at: http://$(curl -s ifconfig.me):$PORT"
                 '''
             }
         }
@@ -46,11 +49,11 @@ pipeline {
 
     post {
         success {
-            echo '✅ Pipeline completed. Your app is running.'
-            sh 'echo "🔗 Access URL: http://$(curl -s ifconfig.me):${PORT}"'
+            echo '✅ Pipeline finished successfully.'
+            sh 'echo "Access App: http://$(curl -s ifconfig.me):$PORT"'
         }
         failure {
-            echo '❌ Pipeline failed. Check logs for more info.'
+            echo '❌ Pipeline failed. Check logs above.'
         }
     }
 }
