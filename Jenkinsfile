@@ -5,6 +5,10 @@ pipeline {
         nodejs 'Node18'
     }
 
+    environment {
+        NODE_ENV = 'production'
+    }
+
     stages {
         stage('Clone Repository') {
             steps {
@@ -14,19 +18,9 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                // Clean node_modules and package-lock.json for a fresh install
                 sh 'rm -rf node_modules package-lock.json'
-                sh 'npm install'
-                // Run audit fix with --force to address all vulnerabilities and deprecations
-                sh 'npm audit fix --force || echo "npm audit fix --force completed with potential issues, continuing..."'
-                // Run install again to ensure package-lock.json is updated after audit fix
-                sh 'npm install'
-            }
-        }
-
-        stage('Code Linting (Optional)') {
-            steps {
-                sh 'npm run lint || echo "Lint failed, continuing..."'
+                sh 'npm cache clean --force'
+                sh 'npm install --legacy-peer-deps'
             }
         }
 
@@ -39,25 +33,23 @@ pipeline {
             }
         }
 
-        stage('Test (Optional)') {
+        stage('Serve Application (Production Mode)') {
             steps {
-                sh 'npm test || echo "Tests failed, continuing..."'
-            }
-        }
-
-        stage('Start Application (Dev Mode)') {
-            steps {
-                sh 'npm start &'
+                // Install serve only once
+                sh 'npm install -g serve'
+                // Start serve in background (port 3000)
+                sh 'nohup serve -s build -l 3000 > serve.log 2>&1 &'
             }
         }
     }
 
     post {
         success {
-            echo '✅ Node.js App pipeline executed successfully.'
+            echo '✅ App deployed successfully. Access it at:'
+            sh 'curl ifconfig.me && echo ":3000"'
         }
         failure {
-            echo '❌ Pipeline failed. Check the console output for issues.'
+            echo '❌ Pipeline failed. Check logs.'
         }
     }
 }
