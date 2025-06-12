@@ -14,6 +14,12 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
+                // Clean node_modules and package-lock.json for a fresh install
+                sh 'rm -rf node_modules package-lock.json'
+                sh 'npm install'
+                // Run audit fix with --force to address all vulnerabilities and deprecations
+                sh 'npm audit fix --force || echo "npm audit fix --force completed with potential issues, continuing..."'
+                // Run install again to ensure package-lock.json is updated after audit fix
                 sh 'npm install'
             }
         }
