@@ -3,9 +3,12 @@ pipeline {
 
     tools {
         nodejs 'Node18'
+        dockerTool 'Docker'  // Make sure Docker is installed and added in Jenkins global tools
     }
 
     environment {
+        IMAGE_NAME = "bank-ui"
+        CONTAINER_NAME = "bank-ui-container"
         PORT = "3000"
     }
 
@@ -21,9 +24,6 @@ pipeline {
                 sh '''
                     rm -rf node_modules package-lock.json
                     npm install --legacy-peer-deps
-                    npm audit fix || echo "Audit fix skipped errors"
-                    # Reinstall react-scripts in case audit fix removed it
-                    npm install react-scripts@5.0.1 --save-dev
                 '''
             }
         }
@@ -36,24 +36,38 @@ pipeline {
             }
         }
 
-        stage('Serve Application') {
+        stage('Build Docker Image') {
             steps {
                 sh '''
-                    nohup npx serve -s build -l $PORT > serve.log 2>&1 &
-                    sleep 5
-                    echo "✅ App is running at: http://$(curl -s ifconfig.me):$PORT"
+                    echo "FROM nginx:alpine" > Dockerfile
+                    echo "COPY build /usr/share/nginx/html" >> Dockerfile
+                    docker build -t $IMAGE_NAME .
                 '''
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                sh '''
+                    docker rm -f $CONTAINER_NAME || true
+                    docker run -d --name $CONTAINER_NAME -p $PORT:80 $IMAGE_NAME
+                '''
+            }
+        }
+
+        stage('Print URL') {
+            steps {
+                sh 'echo "✅ App running at: http://$(curl -s ifconfig.me):$PORT"'
             }
         }
     }
 
     post {
         success {
-            echo '✅ Pipeline finished successfully.'
-            sh 'echo "Access App: http://$(curl -s ifconfig.me):$PORT"'
+            echo '✅ Deployment complete. Access your app via public URL.'
         }
         failure {
-            echo '❌ Pipeline failed. Check logs above.'
+            echo '❌ Deployment failed. See logs.'
         }
     }
 }
