@@ -26,7 +26,7 @@ pipeline {
 
         stage('Build Application') {
             steps {
-                withEnv(['NODE_OPTIONS=--openssl-legacy-provider']) {
+                withEnv(['NODE_OPTIONS=--openssl-legacy-provider', 'CI=false']) {
                     sh 'npm run build'
                 }
             }
