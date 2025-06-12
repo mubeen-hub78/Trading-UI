@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        nodejs 'Node18'  // Use the Node.js version configured in Jenkins
+        nodejs 'Node18'
     }
 
     stages {
@@ -26,7 +26,9 @@ pipeline {
 
         stage('Build Application') {
             steps {
-                sh 'npm run build'
+                withEnv(['NODE_OPTIONS=--openssl-legacy-provider']) {
+                    sh 'npm run build'
+                }
             }
         }
 
