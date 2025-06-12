@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        NODE_ENV = 'production'
+        PORT = "3000"
     }
 
     stages {
@@ -18,15 +18,16 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'rm -rf node_modules package-lock.json'
-                sh 'npm cache clean --force'
-                sh 'npm install --legacy-peer-deps'
+                sh '''
+                    rm -rf node_modules package-lock.json
+                    npm install --legacy-peer-deps
+                    npm audit fix --force || echo "Audit fix may have failed; continuing"
+                '''
             }
         }
 
         stage('Build Application') {
             steps {
-                sh 'rm -rf build'
                 withEnv(['NODE_OPTIONS=--openssl-legacy-provider', 'CI=false']) {
                     sh 'npm run build'
                 }
@@ -35,21 +36,21 @@ pipeline {
 
         stage('Serve Application (Production Mode)') {
             steps {
-                // Install serve only once
-                sh 'npm install -g serve'
-                // Start serve in background (port 3000)
-                sh 'nohup serve -s build -l 3000 > serve.log 2>&1 &'
+                sh '''
+                    nohup npx serve -s build -l ${PORT} > serve.log 2>&1 &
+                    echo "React app started on http://$(curl -s ifconfig.me):${PORT}"
+                '''
             }
         }
     }
 
     post {
         success {
-            echo '✅ App deployed successfully. Access it at:'
-            sh 'curl ifconfig.me && echo ":3000"'
+            echo '✅ Pipeline completed. Your app is running.'
+            sh 'echo "🔗 Access URL: http://$(curl -s ifconfig.me):${PORT}"'
         }
         failure {
-            echo '❌ Pipeline failed. Check logs.'
+            echo '❌ Pipeline failed. Check logs for more info.'
         }
     }
 }
