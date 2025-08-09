@@ -1,73 +1,44 @@
 pipeline {
     agent any
 
-    tools {
-        nodejs 'Node18'
-        dockerTool 'Docker'  // Make sure Docker is installed and added in Jenkins global tools
-    }
-
     environment {
-        IMAGE_NAME = "bank-ui"
-        CONTAINER_NAME = "bank-ui-container"
-        PORT = "3000"
+        PM2_HOME = "/var/jenkins_home/.pm2"  // PM2 data inside Jenkins container
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Git Checkout') {
             steps {
-                git branch: 'master', url: 'https://github.com/mubeen-hub78/Trading-UI.git'
+                git 'https://github.com/betawins/Trading-UI.git'
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                sh '''
-                    rm -rf node_modules package-lock.json
-                    npm install --legacy-peer-deps
-                '''
+                sh 'npm ci || npm install'
             }
         }
 
-        stage('Build Application') {
+        stage('Build') {
             steps {
-                withEnv(['NODE_OPTIONS=--openssl-legacy-provider', 'CI=false']) {
-                    sh 'npm run build'
-                }
+                sh 'npm run build'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Start with PM2') {
             steps {
                 sh '''
-                    echo "FROM nginx:alpine" > Dockerfile
-                    echo "COPY build /usr/share/nginx/html" >> Dockerfile
-                    docker build -t $IMAGE_NAME .
+                    mkdir -p $PM2_HOME
+                    pm2 delete Trading-UI || true
+                    pm2 --name Trading-UI start npm -- start
+                    pm2 save
                 '''
-            }
-        }
-
-        stage('Run Docker Container') {
-            steps {
-                sh '''
-                    docker rm -f $CONTAINER_NAME || true
-                    docker run -d --name $CONTAINER_NAME -p $PORT:80 $IMAGE_NAME
-                '''
-            }
-        }
-
-        stage('Print URL') {
-            steps {
-                sh 'echo "✅ App running at: http://$(curl -s ifconfig.me):$PORT"'
             }
         }
     }
 
     post {
-        success {
-            echo '✅ Deployment complete. Access your app via public URL.'
-        }
-        failure {
-            echo '❌ Deployment failed. See logs.'
+        always {
+            echo 'Pipeline execution finished.'
         }
     }
 }
