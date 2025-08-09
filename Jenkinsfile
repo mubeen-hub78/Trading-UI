@@ -2,13 +2,19 @@ pipeline {
     agent any
 
     environment {
-        PM2_HOME = "/var/jenkins_home/.pm2"  // PM2 data inside Jenkins container
+        PM2_HOME = "/var/jenkins_home/.pm2"
     }
 
     stages {
         stage('Git Checkout') {
             steps {
                 git 'https://github.com/betawins/Trading-UI.git'
+            }
+        }
+
+        stage('Overwrite package-lock.json') {
+            steps {
+                sh 'cp /var/jenkins_home/fixed-package-lock.json ./package-lock.json'
             }
         }
 
