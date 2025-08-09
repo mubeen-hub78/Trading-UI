@@ -8,13 +8,13 @@ pipeline {
     stages {
         stage('Git Checkout') {
             steps {
-                git 'https://github.com/betawins/Trading-UI.git'
+                git 'https://github.com/mubeen-hub78/Trading-UI.git'
             }
         }
 
         stage('Overwrite package-lock.json') {
             steps {
-                sh 'cp /var/jenkins_home/fixed-package-lock.json ./package-lock.json'
+                sh 'cp fixed-package-lock.json package-lock.json'
             }
         }
 
