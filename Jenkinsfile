@@ -14,7 +14,7 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'npm ci || npm install'
+                sh 'npm ci'
             }
         }
 
