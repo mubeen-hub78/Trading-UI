@@ -12,12 +12,6 @@ pipeline {
             }
         }
 
-        stage('Overwrite package-lock.json') {
-            steps {
-                sh 'cp fixed-package-lock.json package-lock.json'
-            }
-        }
-
         stage('Install Dependencies') {
             steps {
                 sh 'npm ci'
